@@ -23,17 +23,5 @@ def getFiles(filenames, labelnames):
 
     feature_batch , label_batch = tf.train.batch([image,label],batch_size=5)
 
-    return feature_batch,label_batch
+    return tf.cast(feature_batch, tf.float32),label_batch
 
-filenames = glob.glob('./data/train/downsampled/*.png')
-labelnames = ['./data/train.csv']
-
-filenames.sort()
-
-fbatch,lbatch = getFiles(filenames,labelnames)
-
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess,coord=coord)
-    features,labels = sess.run([fbatch,lbatch])
