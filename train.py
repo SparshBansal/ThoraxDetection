@@ -58,11 +58,11 @@ def train_neural_network():
     
         labels = preprocess_labels(labels, table)
 
-        #output = model.conv_nn(features)
-        #loss = model.get_loss(output, labels)
-        #train_step = model.get_optimizer(loss)
+        output = model.conv_nn(features)
+        loss = model.get_loss(output, labels)
+        train_step = model.get_optimizer(loss)
 
-        fetches = [features , labels]
+        fetches = [output,loss,train_step]
 
         sess.run(tf.global_variables_initializer())
         
@@ -71,8 +71,8 @@ def train_neural_network():
         threads = tf.train.start_queue_runners(coord=coord)
         
         # run the graph
-        f , l = sess.run(fetches)
+        model_output , model_loss, _ = sess.run(fetches)
 
-        print l
+        print model_output
 
 train_neural_network()

@@ -69,7 +69,7 @@ def conv_nn(features):
     
     # add layers accordingly
     model.add_fc(20)
-    model.add_fc(10)
+    model.add_fc(14)
 
     return model.get_output()
 
