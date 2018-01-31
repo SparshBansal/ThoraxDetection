@@ -54,18 +54,28 @@ def train_neural_network():
         table = initialize_lookup_table()
 
         train_feature_filenames, train_label_filenames= get_filenames();
-        features , labels = input.getFiles(train_feature_filenames , train_label_filenames)
-    
-        labels = preprocess_labels(labels, table)
 
-        output = model.conv_nn(features)
-        loss = model.get_loss(output, labels)
+        with tf.name_scope('raw_inputs'):
+            features , labels = input.getFiles(train_feature_filenames , train_label_filenames)
+        
+        with tf.name_scope('processed_labels'):
+            labels = preprocess_labels(labels, table)
+        
+        output = model.create_model(features, labels)
+
+        with tf.name_scope('loss'):
+            loss = model.get_loss(output, labels)
+
         train_step = model.get_optimizer(loss)
 
         fetches = [output,loss,train_step]
-
+        
+        # initialize variables
         sess.run(tf.global_variables_initializer())
         
+        # add graph summary for tensorboard
+        writer = tf.summary.FileWriter(constants.TENSORBOARD_DIR , sess.graph)
+
         # start queue runner for data loading
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
