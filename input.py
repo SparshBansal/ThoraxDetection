@@ -1,5 +1,8 @@
 import tensorflow as tf
 import numpy as np
+
+import constants
+
 import glob
 import os
 
@@ -21,7 +24,6 @@ def getFiles(filenames, labelnames):
     col1,col2,col3,col4,col5,col6 = tf.decode_csv(label_value,record_defaults=defaults)
     label = tf.stack([col1,col3,col5,col6])
 
-    feature_batch , label_batch = tf.train.batch([image,label],batch_size=5)
-
+    feature_batch , label_batch = tf.train.batch([image,label],batch_size=constants.BATCH_SIZE) 
     return tf.cast(feature_batch, tf.float32),label_batch
 

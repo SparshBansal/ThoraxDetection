@@ -73,6 +73,14 @@ def conv_nn(features):
 
     return model.get_output()
 
+def create_model(features,labels):
+
+    # create variable scope for the network
+    with tf.variable_scope('cnn') as scope:
+        output = conv_nn(features)
+        scope.reuse_variables()
+    return output
+
 def get_loss(output, labels):
     
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=output)
