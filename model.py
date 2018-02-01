@@ -29,10 +29,10 @@ class Model:
             # make variables for weights and biases 
             weight = tf.get_variable('weight' , shape=[kernel_size,kernel_size,input_channels,output_channels],
                     initializer=tf.contrib.layers.xavier_initializer())
-            bias = tf.get_variable('bias', shape=[output_channels], initializer=tf.constant(0.0))
+            bias = tf.get_variable('bias', initializer=tf.constant(0.0,shape=[output_channels]))
 
 
-            out = tf.nn.conv2d(self.get_output(), weight, stride=[1,stride,stride,1],padding='SAME')
+            out = tf.nn.conv2d(self.get_output(), weight, strides=[1,stride,stride,1],padding='SAME')
             out = tf.nn.bias_add(out,bias);
 
         self.outputs.append(out)
@@ -68,6 +68,9 @@ def conv_nn(features):
     model = Model('cnn' , features)
     
     # add layers accordingly
+    model.add_conv2d(5,32)
+    model.add_conv2d(7,64)
+    model.add_conv2d(7,128)
     model.add_fc(20)
     model.add_fc(14)
 
