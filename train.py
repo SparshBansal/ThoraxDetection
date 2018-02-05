@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
 import numpy as np
 import glob
 
@@ -6,6 +7,7 @@ import model
 import input
 import constants
 
+from PIL import Image
 
 def get_filenames():
     train_feature_filenames = glob.glob(constants.FEATURE_DIR + "*.png")
@@ -26,6 +28,7 @@ def initialize_lookup_table():
         'class_8',
         'class_9',
         'class_10',
+        'class_11',
         'class_12',
         'class_13',
         'class_14',
@@ -50,16 +53,17 @@ def train_neural_network():
 
     with tf.Session() as sess:
 
+        sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         # initialize lookup table
         table = initialize_lookup_table()
 
         train_feature_filenames, train_label_filenames = get_filenames();
 
         with tf.name_scope('raw_inputs'):
-            features, labels = input.getFiles(train_feature_filenames, train_label_filenames)
+            features, raw_labels = input.getFiles(train_feature_filenames, train_label_filenames)
 
         with tf.name_scope('processed_labels'):
-            labels = preprocess_labels(labels, table)
+            labels = preprocess_labels(raw_labels, table)
 
         output, test_output, test_features, test_labels = model.create_model(features, labels)
 
@@ -72,15 +76,12 @@ def train_neural_network():
         with tf.name_scope('dev_accuracy'):
             dev_accuracy = model.compute_accuracy(test_output, test_labels)
 
-
         train_step = model.get_optimizer(loss)
-        training_fetches = [output, loss, training_accuracy, train_step]
-
-        # get dev features 
-        dev_features, dev_labels = sess.run([features, labels])
+        training_fetches = [features,raw_labels,labels, output, loss, training_accuracy, train_step]
 
         # initialize variables
         sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
         # add graph summary for tensorboard
         writer = tf.summary.FileWriter(constants.TENSORBOARD_DIR, sess.graph)
@@ -89,15 +90,20 @@ def train_neural_network():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
+        # get dev features
+        dev_features, dev_labels = sess.run([features, labels])
+        # check if we received the labels correctly or not
+        print dev_labels
+
         for epoch in range(1, constants.EPOCHS + 1):
             for batch in range(1, constants.NUM_BATCHES + 1):
                 # train the model
-                model_output, model_loss, model_accuracy, _ = sess.run(training_fetches)
-                print "Epoch {}/{} ; Batch {}/{} ; Accuracy {} ; Loss {}".format(epoch, constants.EPOCHS , batch,
+                model_features,model_raw_labels,model_labels, model_output, model_loss, model_accuracy, _ = sess.run(training_fetches)
+                print "Epoch {}/{} ; Batch {}/{} ; Accuracy {} ; Loss {}".format(epoch, constants.EPOCHS, batch,
                                                                                  constants.NUM_BATCHES, model_accuracy,
                                                                                  model_loss)
-
-                # evaluate the accuracy 
+                print model_output  
+                # evaluate the accuracy
                 if (batch % constants.TEST_PERIOD == 0):
                     mdev_accuracy = sess.run(dev_accuracy,
                                              feed_dict={test_features: dev_features, test_labels: dev_labels})

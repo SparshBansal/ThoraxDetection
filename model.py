@@ -1,4 +1,5 @@
 import tensorflow as tf
+import constants
 
 
 class Model:
@@ -29,37 +30,24 @@ class Model:
             input_channels = self.get_num_inputs()
 
             # make variables for weights and biases 
-            weight = tf.get_variable('weight', shape=[kernel_size, kernel_size, input_channels, output_channels],
-                                     initializer=tf.contrib.layers.xavier_initializer())
+            weight = tf.get_variable('weight', shape=[kernel_size, kernel_size, input_channels, output_channels])
             bias = tf.get_variable('bias', initializer=tf.constant(0.0, shape=[output_channels]))
 
             out = tf.nn.conv2d(self.get_output(), weight, strides=[1, stride, stride, 1], padding='SAME')
-            out = tf.nn.bias_add(out, bias);
+            out = tf.nn.bias_add(out, bias)
 
         self.outputs.append(out)
 
     def add_relu(self):
-        with tf.variable_scope(tf.get_layer_str()):
+        with tf.variable_scope(self.get_layer_str()):
             out = tf.nn.relu(self.get_output())
-        self.append(out)
+        self.outputs.append(out)
 
     # add fully connected layer
     def add_fc(self, output_units):
-
-        inputs = self.get_output();
-
-        # flatten if needed
-        if len(self.get_output().get_shape()) > 2:
-            # find input units
-            input_shape = self.get_output().get_shape().as_list()
-            inunits = 1
-            for dim in input_shape[1:]:
-                inunits = inunits * dim
-
-            inputs = tf.reshape(inputs, [-1, inunits])
-
+        inputs = tf.contrib.layers.flatten(self.get_output());
         with tf.variable_scope(self.get_layer_str()):
-            out = tf.layers.dense(inputs=inputs, units=output_units, activation=tf.nn.relu)
+            out = tf.contrib.layers.fully_connected(inputs, output_units)
 
         self.outputs.append(out)
 
@@ -69,8 +57,12 @@ def conv_nn(features):
 
     # add layers accordingly
     model.add_conv2d(5, 32)
+    model.add_relu()
     model.add_conv2d(7, 64)
+    model.add_relu()
     model.add_conv2d(7, 128)
+    model.add_relu()
+
     model.add_fc(20)
     model.add_fc(14)
 
@@ -82,8 +74,8 @@ def create_model(features, labels):
     _width = features.get_shape()[2]
     _channel = features.get_shape()[3]
 
-    test_features = tf.placeholder(tf.float32, [None, _height, _width, _channel])
-    test_labels = tf.placeholder(tf.float32, [None])
+    test_features = tf.placeholder(tf.float32, [constants.BATCH_SIZE, _height, _width, _channel])
+    test_labels = tf.placeholder(tf.float32, [constants.BATCH_SIZE])
 
     # create variable scope for the network
     with tf.variable_scope('cnn') as scope:
@@ -95,7 +87,7 @@ def create_model(features, labels):
 
 
 def get_loss(output, labels):
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=output)
+    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=output))
     return loss
 
 
@@ -106,7 +98,7 @@ def compute_accuracy(output, labels):
 
 
 def get_optimizer(loss):
-    optimizer = tf.train.AdamOptimizer()
+    optimizer = tf.train.AdamOptimizer(learning_rate=constants.LEARNING_RATE)
     train_op = optimizer.minimize(loss)
 
     return train_op
